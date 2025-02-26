@@ -1,5 +1,11 @@
 ## Hi there 👋
 
+- 🔭 I'm hacking away on Azure, GCP, and AWS
+- 🌱 Currently learning about hybrid enterprise environments and red team infrastructure as code
+- 🖥️ Tinkering on the cheap with the help of awesome projects like [PurpleCloud](https://github.com/iknowjason/PurpleCloud) and [GOAD](https://github.com/Orange-Cyberdefense/GOAD)
+- 🏴‍☠️ Capturing flags occasionally on [my Hackthebox account](https://app.hackthebox.com/profile/370509)
+- ⚡ Not a hacker
+
 <!--
 **t3rp/t3rp** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
