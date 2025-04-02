@@ -1,0 +1,148 @@
+name: Update Recent Gists in README
+
+on:
+  # Run automatically on a schedule (e.g., daily at 1 AM UTC)
+  schedule:
+    - cron: '0 1 * * *'
+  # Allow manual triggering from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  update_readme:
+    name: Update README with Recent Gists
+    runs-on: ubuntu-latest
+    # Permissions needed to check out code and push changes
+    permissions:
+      contents: write
+
+    steps:
+      # 1. Get the current version of the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2 & 3. Get 10 most recent gists via API and create markdown links
+      - name: Fetch and Format Gists
+        id: get_gists # Step ID to reference outputs
+        run: |
+          # --- Configuration ---
+          USERNAME="t3rp" # <<<--- REPLACE THIS WITH THE GITHUB USERNAME
+          # --- End Configuration ---
+
+          echo "Fetching up to 10 newest gists for $USERNAME..."
+          API_URL="https://api.github.com/users/${USERNAME}/gists?per_page=10&sort=updated&direction=desc"
+
+          # Fetch data using curl, parse and format using jq
+          # -r for raw string output, no quotes
+          # Slices to get max 10 items (.[0:10]), iterates each (.[]), formats
+          # Fallback description: first filename or "Untitled Gist"
+          GIST_LIST=$(curl -s -H "Accept: application/vnd.github.v3+json" "$API_URL" | \
+                      jq -r '.[] | "- [\(.description // (.files | keys[0]) // "Untitled Gist")](\(.html_url))"')
+
+          # Handle case where no gists are found or API/jq fails
+          if [ -z "$GIST_LIST" ]; then
+            echo "::warning::No public gists found or error fetching for $USERNAME."
+            GIST_LIST="*No public gists found recently.*"
+          fi
+
+          # Debugging: Show the generated list in the action logs
+          echo "--- Generated Gist List ---"
+          echo "$GIST_LIST"
+          echo "--- End Generated Gist List ---"
+
+          # Save the possibly multi-line list to GITHUB_ENV to pass safely to the Python step
+          echo "GIST_LIST_MARKDOWN<<EOF_GIST_LIST" >> $GITHUB_ENV
+          echo "$GIST_LIST" >> $GITHUB_ENV
+          echo "EOF_GIST_LIST" >> $GITHUB_ENV
+          echo "Gist list saved for Python step."
+
+      # 4. Add the markdown links to the README.md under '## Recent Gists' heading
+      - name: Update README Section using Python
+        id: update_readme # Step ID to reference outputs
+        env:
+          # Make the generated list available to the Python script
+          GIST_LIST_MARKDOWN: ${{ env.GIST_LIST_MARKDOWN }}
+        run: |
+          python -u -c "
+          import re
+          import os
+          import sys
+
+          # --- Configuration ---
+          readme_path = 'README.md'
+          target_heading_text = '## Recent Gists' # Exact heading text to find
+          # --- End Configuration ---
+
+          # Get the new list content from environment variable
+          new_list_content = os.environ.get('GIST_LIST_MARKDOWN', '').strip()
+          print(f'Attempting to update section under \"{target_heading_text}\" in {readme_path}')
+
+          # Get the path to the GitHub Actions output file
+          output_path = os.environ.get('GITHUB_OUTPUT')
+
+          # Function to write output parameter using environment file
+          def set_output(name, value):
+              if output_path:
+                  with open(output_path, 'a') as f:
+                      # Use newline to separate multiple outputs if needed
+                      f.write(f'{name}={value}\n')
+                  print(f'Output {name}={value} written to GITHUB_OUTPUT')
+              else:
+                  print(f'::warning::GITHUB_OUTPUT environment variable not found. Cannot set output {name}.')
+
+          # Read the entire README content
+          try:
+              with open(readme_path, 'r', encoding='utf-8') as f:
+                  current_content = f.read()
+          except Exception as e:
+              print(f'::error::Failed to read {readme_path}: {e}')
+              sys.exit(1) # Exit if cannot read file
+
+          # Prepare the replacement block: the heading + newline + new list content + newline
+          replacement_block = f'{target_heading_text}\n{new_list_content}\n'
+
+          # Regex to find the section (same as before)
+          pattern = re.compile(
+              rf'(^{re.escape(target_heading_text)}\s*\n)(.*?)'
+              rf'(?=\n^##?#?#?\s+|\Z)',
+              flags=re.MULTILINE | re.DOTALL
+          )
+
+          # Perform the substitution (same as before)
+          new_readme_content, num_subs = pattern.subn(
+              lambda m: f'{m.group(1)}{new_list_content}\n',
+              current_content
+          )
+
+          # Check results and signal changes using the environment file
+          if num_subs == 0:
+              print(f'::warning::Heading \"{target_heading_text}\" not found in {readme_path}. File not changed.')
+              set_output('changes_made', 'false') # Signal no change
+          elif new_readme_content != current_content:
+              print(f'README content changed under \"{target_heading_text}\". Writing file.')
+              try:
+                  with open(readme_path, 'w', encoding='utf-8') as f:
+                      f.write(new_readme_content)
+                  set_output('changes_made', 'true') # Signal change made
+              except Exception as e:
+                  print(f'::error::Failed to write changes to {readme_path}: {e}')
+                  sys.exit(1) # Exit if write fails
+          else:
+              print('No changes required in README content under the heading.')
+              set_output('changes_made', 'false') # Signal no change
+          "
+
+      # 5. If changes were made from the original README.md then update the repo
+      - name: Commit and Push Changes
+        # Only run if the python script signaled changes were made
+        if: steps.update_readme.outputs.changes_made == 'true'
+        run: |
+          echo "Changes detected in README.md. Committing..."
+          # Configure Git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          # Add, commit, and push
+          git add README.md
+          git commit -m "Automated update: Refresh recent gists list"
+          echo "Pushing changes..."
+          git push
+          echo "Changes pushed successfully."
