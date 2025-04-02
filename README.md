@@ -17,6 +17,4 @@ Here are some ideas to get you started:
 
 ## Recent Gists
 
-## Something else
-
-- Testing workflow for gists
+- [Amazon Web Services (AWS) Internal MetaData Service v2 (IMDS) to usable creds](https://gist.github.com/t3rp/e85d27d90c7a9eacc2a431ba674a339e)
