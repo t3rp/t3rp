@@ -1,5 +1,7 @@
 ## Hi there 👋
 
+This text should NOT get replaced by the GitHub action.
+
 <!--
 **t3rp/t3rp** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
