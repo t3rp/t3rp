@@ -20,5 +20,5 @@ Here are some ideas to get you started:
 ## Recent Gists
 
 - [DNS Zone Transfer to Linux Hosts File](https://gist.github.com/t3rp/a3558f7eb272370ffcc7a0402b34db0d)
-- [Connect to Kali LInux EC2 with RDP through SSH tunnel](https://gist.github.com/t3rp/e53414080f1114c85dabf86bcd4bb21b)
+- [Connect to Kali Linux EC2 with RDP through SSH tunnel](https://gist.github.com/t3rp/e53414080f1114c85dabf86bcd4bb21b)
 - [Amazon Web Services (AWS) Internal MetaData Service v2 (IMDS) to usable creds](https://gist.github.com/t3rp/e85d27d90c7a9eacc2a431ba674a339e)
