@@ -1,4 +1,7 @@
-## Hi there 👋
+## Todo list:
+
+- [x] Hack
+- [ ] Profit
 
 <!--
 **t3rp/t3rp** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
